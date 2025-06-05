@@ -2,17 +2,21 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>OSM + OSRM Routing Example</title>
+  <title>Google Style Routing Example</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
   <style>
+    body { margin: 0; font-family: 'Segoe UI', sans-serif; }
     #map {
       height: 90vh;
       width: 100%;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
     }
     #info {
       padding: 1rem;
-      font-family: sans-serif;
-      background: #f9f9f9;
+      background: #fff;
+      text-align: center;
+      font-size: 16px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
   </style>
 </head>
@@ -27,8 +31,11 @@
 
     const map = L.map('map').setView(start, 14);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors'
+    // Google Maps style light
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; <a href="https://carto.com/">CARTO</a> &copy; OpenStreetMap contributors',
+      subdomains: 'abcd',
+      maxZoom: 19
     }).addTo(map);
 
     const infoDiv = document.getElementById('info');
@@ -50,13 +57,27 @@
       const distance = (route.distance / 1000).toFixed(2); // km
       const latlngs = coords.map(c => [c[1], c[0]]);
 
-      L.polyline(latlngs, { color: 'blue', weight: 5 }).addTo(map);
-      L.marker(start).addTo(map).bindPopup(startName).openPopup();
-      L.marker(end).addTo(map).bindPopup(endName);
+      // เส้นแบบ Google Style (ฟ้า)
+      L.polyline(latlngs, {
+        color: '#4285F4',
+        weight: 6,
+        opacity: 0.9,
+        lineJoin: 'round'
+      }).addTo(map);
+
+      // Marker แบบ Google Style (แดง)
+      const redIcon = L.icon({
+        iconUrl: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
+        iconSize: [32, 32],
+        iconAnchor: [16, 32]
+      });
+
+      L.marker(start, { icon: redIcon }).addTo(map).bindPopup(`<b>ต้นทาง:</b><br>${startName}`).openPopup();
+      L.marker(end, { icon: redIcon }).addTo(map).bindPopup(`<b>ปลายทาง:</b><br>${endName}`);
 
       map.fitBounds(latlngs);
 
-      infoDiv.innerHTML = `<strong>จาก:</strong> ${startName}<br><strong>ถึง:</strong> ${endName}<br><strong>ระยะทางประมาณ:</strong> ${distance} กิโลเมตร`;
+      infoDiv.innerHTML = `<strong>จาก:</strong> ${startName}<br><strong>ถึง:</strong> ${endName}<br><strong>ระยะทางโดยประมาณ:</strong> ${distance} กิโลเมตร`;
     })
     .catch(err => {
       infoDiv.innerHTML = 'ไม่สามารถคำนวณเส้นทางหรือชื่อสถานที่ได้';
