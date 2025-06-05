@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>OSM + OSRM Routing Example</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+  <style>
+    #map {
+      height: 90vh;
+      width: 100%;
+    }
+    #info {
+      padding: 1rem;
+      font-family: sans-serif;
+      background: #f9f9f9;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div id="info">กำลังคำนวณระยะทาง...</div>
+
+  <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+  <script>
+    const start = [13.7465, 100.5392]; // Central World
+    const end = [13.7500, 100.4913];   // Wat Phra Kaew
+
+    const map = L.map('map').setView(start, 14);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    const infoDiv = document.getElementById('info');
+
+    const routeUrl = `https://router.project-osrm.org/route/v1/driving/${start[1]},${start[0]};${end[1]},${end[0]}?overview=full&geometries=geojson`;
+    const reverseGeocode = (lat, lon) =>
+      fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`)
+        .then(res => res.json())
+        .then(data => data.display_name || "ไม่พบชื่อสถานที่");
+
+    Promise.all([
+      fetch(routeUrl).then(r => r.json()),
+      reverseGeocode(start[0], start[1]),
+      reverseGeocode(end[0], end[1])
+    ])
+    .then(([routeData, startName, endName]) => {
+      const route = routeData.routes[0];
+      const coords = route.geometry.coordinates;
+      const distance = (route.distance / 1000).toFixed(2); // km
+      const latlngs = coords.map(c => [c[1], c[0]]);
+
+      L.polyline(latlngs, { color: 'blue', weight: 5 }).addTo(map);
+      L.marker(start).addTo(map).bindPopup(startName).openPopup();
+      L.marker(end).addTo(map).bindPopup(endName);
+
+      map.fitBounds(latlngs);
+
+      infoDiv.innerHTML = `<strong>จาก:</strong> ${startName}<br><strong>ถึง:</strong> ${endName}<br><strong>ระยะทางประมาณ:</strong> ${distance} กิโลเมตร`;
+    })
+    .catch(err => {
+      infoDiv.innerHTML = 'ไม่สามารถคำนวณเส้นทางหรือชื่อสถานที่ได้';
+      console.error(err);
+    });
+  </script>
+</body>
+</html>
